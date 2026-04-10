@@ -1,0 +1,68 @@
+/* Mobile fixes for modularized frontend */
+@media (max-width: 768px){
+  .topbar.modern-topbar{padding:10px 12px}
+  .brand-sub{display:none}
+  .inbox-layout{
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+    height:auto !important;
+  }
+  .mlist{
+    max-height:52vh;
+    overflow-y:auto;
+  }
+  .mdetail{
+    min-height:0 !important;
+    height:auto !important;
+    overflow:visible !important;
+  }
+  .mi{
+    padding:10px 10px !important;
+    gap:7px !important;
+    align-items:flex-start;
+  }
+  .mi input[type="checkbox"]{
+    width:14px;
+    height:14px;
+    margin-top:2px;
+    flex-shrink:0;
+  }
+  .mi-sub{
+    font-size:11px !important;
+    line-height:1.35 !important;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    white-space:normal !important;
+    overflow:hidden;
+  }
+  .mi-prev{
+    font-size:10px !important;
+    line-height:1.35 !important;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    white-space:normal !important;
+    overflow:hidden;
+    margin-top:3px !important;
+  }
+  #mail-detail [id^="mail-body-container-"]{
+    width:100%;
+    max-width:100%;
+    overflow:hidden;
+  }
+  #mail-detail iframe{
+    width:100% !important;
+    max-width:100% !important;
+  }
+  #reply-overlay{
+    padding:10px !important;
+    align-items:flex-end !important;
+  }
+  #reply-overlay > div{
+    max-width:none !important;
+    width:100% !important;
+    max-height:88vh !important;
+    border-radius:16px 16px 0 0 !important;
+  }
+}

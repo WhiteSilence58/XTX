@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="LogiCheck — Operations Cockpit für Support, Inbox, Scanner & Invoice Management">
+<meta name="theme-color" content="#3b5bdb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>LogiCheck — Operations Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/modern.css">
+<link rel="stylesheet" href="styles/mobile-fixes.css">
+</head>
+<body>
+<div class="app">
+<div class="topbar modern-topbar">
+  <div class="topbar-left">
+    <button class="hamburger" onclick="toggleSidebar()" title="Menü">☰</button>
+    <div class="brand-lockup">
+      <div class="brand-mark">LC</div>
+      <div class="brand-copy">
+        <span class="logo">Logi<span>Check</span></span>
+        <span class="brand-sub">Support · Inbox · Scanner · Invoice</span>
+      </div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-pill"><span class="dot" id="dot"></span><span>Systemstatus</span></div>
+    <button class="bell" onclick="toggleBell()" id="bell-btn" title="Benachrichtigungen">🔔<span class="bell-badge" id="bell-count" style="display:none">0</span></button>
+    <button class="btn xs topbar-logout" onclick="doLogout()" title="Abmelden">Logout</button>
+  </div>
+</div>
+<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+
+<div class="np" id="np" style="display:none">
+  <div class="ch" style="font-size:12px">Neue Mails <button class="btn xs" onclick="markAllRead()">Alle gelesen</button></div>
+  <div id="np-list"></div>
+</div>
+
+<div class="app-shell">
+<nav class="sidebar" id="sidebar">
+  <!-- Gruppe: Übersicht -->
+  <div class="sb-group">Übersicht</div>
+  <button class="sb-item active" id="sb-dash" onclick="go('dash')"><span class="sb-icon">📊</span><span class="sb-label">Dashboard</span></button>
+  <button class="sb-item" id="sb-stats" onclick="go('stats')"><span class="sb-icon">📈</span><span class="sb-label">Statistik</span></button>
+  <button class="sb-item" id="sb-monthly" onclick="go('monthly')"><span class="sb-icon">📅</span><span class="sb-label">Monatsreport</span></button>
+
+  <div class="sb-divider"></div>
+  <!-- Gruppe: Kommunikation -->
+  <div class="sb-group">Kommunikation</div>
+  <button class="sb-item" id="sb-inbox" onclick="go('inbox')"><span class="sb-icon">📬</span><span class="sb-label">Postfach</span><span class="sb-badge" id="sb-bell-count" style="display:none">0</span></button>
+  <button class="sb-item" id="sb-compose" onclick="go('compose')"><span class="sb-icon">✉</span><span class="sb-label">Neue Mail</span></button>
+
+  <div class="sb-divider"></div>
+  <!-- Gruppe: Serials -->
+  <div class="sb-group">Serials</div>
+  <button class="sb-item" id="sb-serials" onclick="go('serials')"><span class="sb-icon">🔢</span><span class="sb-label">Serials</span></button>
+  <button class="sb-item" id="sb-products" onclick="go('products')"><span class="sb-icon">🖱</span><span class="sb-label">Produkte</span></button>
+  <button class="sb-item" id="sb-check" onclick="go('check')"><span class="sb-icon">🔍</span><span class="sb-label">Prüfen</span></button>
+
+  <div class="sb-divider"></div>
+  <!-- Gruppe: Verwaltung -->
+  <div class="sb-group">Verwaltung</div>
+  <button class="sb-item" id="sb-rma" onclick="go('rma')"><span class="sb-icon">📦</span><span class="sb-label">RMA</span></button>
+  <button class="sb-item" id="sb-identities" onclick="go('identities')"><span class="sb-icon">👤</span><span class="sb-label">Profile</span></button>
+  <button class="sb-item" id="sb-invoice" onclick="go('invoice')"><span class="sb-icon">🧾</span><span class="sb-label">Rechnung</span></button>
+  <button class="sb-item" id="sb-settings" onclick="go('settings')"><span class="sb-icon">⚙</span><span class="sb-label">Einstellungen</span></button>
+
+  <div style="flex:1"></div>
+  <div class="collapse-btn" onclick="collapseSidebar()" id="collapse-btn" title="Sidebar einklappen">
+    <span id="collapse-icon">◀</span>
+  </div>
+</nav>
+
+<div class="content-area" id="content-area">
+<!-- DASHBOARD -->
+<div id="tab-dash">
+  <section class="hero-panel">
+    <div class="hero-copy">
+      <span class="hero-kicker">Operations Cockpit</span>
+      <h1>Alles Wichtige an einem Ort</h1>
+      <p>Behalte Scanner, Support-Mails, Registrierungen und Rechnungen in einer klaren Oberfläche im Blick.</p>
+      <div class="hero-actions">
+        <button class="btn pr" onclick="go('inbox')">Postfach öffnen</button>
+        <button class="btn" onclick="go('compose')">Neue Mail</button>
+        <button class="btn" onclick="go('check')">Serial prüfen</button>
+      </div>
+    </div>
+    <div class="hero-side">
+      <div class="hero-mini-card">
+        <span class="hero-mini-label">Live-Module</span>
+        <div class="hero-mini-grid">
+          <span class="hero-chip">Inbox</span>
+          <span class="hero-chip">Scanner</span>
+          <span class="hero-chip">RMA</span>
+          <span class="hero-chip">Invoice</span>
+        </div>
+      </div>
+      <div class="hero-mini-card hero-mini-card-accent">
+        <span class="hero-mini-label">Fokus</span>
+        <strong>Schneller triagieren, sauberer prüfen, ruhiger arbeiten.</strong>
+      </div>
+    </div>
+  </section>
+  <!-- Stats row -->
+  <div class="stats" id="sg" style="margin-bottom:10px"></div>
+  <!-- Scanner card -->
+  <div class="scanner card" id="sc" style="padding:12px 14px;margin-bottom:12px"></div>
+  <!-- Products section -->
+  <div class="card" style="overflow:hidden;margin-top:2px">
+    <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2);flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;flex:1">Produkte</span>
+      <input id="dp-search" placeholder="🔍 Suchen..." oninput="filterDpTable()" style="width:160px;padding:4px 8px;font-size:11px;border-radius:20px">
+      <button class="btn xs" onclick="go('products')">Alle →</button>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead>
+        <tr style="background:var(--surface2);border-bottom:1px solid var(--border)">
+          <th style="padding:6px 10px;text-align:left;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;cursor:pointer" onclick="sortDpTable('product')">
+            Produkt <span class="dp-sort-icon" data-col="product" style="opacity:.3">↕</span>
+          </th>
+          <th style="padding:6px 10px;text-align:right;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;width:60px;cursor:pointer" onclick="sortDpTable('valid')">
+            Gültig <span class="dp-sort-icon" data-col="valid" style="opacity:1">↓</span>
+          </th>
+          <th style="padding:6px 10px;text-align:right;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;width:55px;cursor:pointer" onclick="sortDpTable('registered')">
+            Reg. <span class="dp-sort-icon" data-col="registered" style="opacity:.3">↕</span>
+          </th>
+          <th style="padding:6px 10px;text-align:right;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;width:90px;cursor:pointer" onclick="sortDpTable('val')">
+            Wert <span class="dp-sort-icon" data-col="val" style="opacity:.3">↕</span>
+          </th>
+        </tr>
+      </thead>
+    </table>
+    <div id="dp" style="max-height:300px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <tbody id="dp-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Newest Serials -->
+  <div class="card" style="overflow:hidden;margin-top:10px">
+    <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2)">
+      <span style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;flex:1">🆕 Neueste Serials</span>
+      <button class="btn xs" onclick="go('serials')">Alle →</button>
+    </div>
+    <div id="dp-newest" style="max-height:200px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <tbody id="dp-newest-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- POSTFACH -->
+<div id="tab-inbox" style="display:none">
+  <!-- Toolbar -->
+  <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
+    <div style="position:relative;flex:1;min-width:180px">
+      <input id="is" placeholder="🔍 Suchen..." oninput="renderInbox()" style="padding-left:10px;width:100%">
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      <button class="ff" id="iunread" onclick="toggleUnread()" title="Nur ungelesen">● Ungelesen</button>
+      <button class="ff" id="istarred" onclick="toggleStarred()" title="Markiert">★</button>
+      <button class="ff" id="ilogitech" onclick="toggleLogitech()" title="Nur Logitech">🖱 Logi</button>
+      <select id="ifolder" onchange="filterByFolder()" style="padding:4px 8px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px">
+        <option value="">📬 Alle Ordner</option>
+      </select>
+    </div>
+    <select id="isort" onchange="renderInbox()" style="padding:5px 9px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px">
+      <option value="date">↓ Datum</option>
+      <option value="unread">Ungelesen</option>
+      <option value="ticket">Ticket-ID</option>
+      <option value="sender">Absender</option>
+    </select>
+    <button class="btn sm" onclick="syncInbox()" title="Neue Mails abrufen">↻</button>
+    <button class="btn sm" onclick="markAllRead()">✓ Alle</button>
+    <button class="btn sm" style="background:var(--blue-bg);color:var(--blue)" onclick="aiSortMails()" title="KI sortiert Mails automatisch in Ordner">✦ KI-Sort</button>
+    <button class="btn sm" onclick="showFolderManager()">📁 Ordner</button>
+    <button class="btn sm da" id="del-sel-btn" style="display:none" onclick="deleteSelected()">🗑</button>
+  </div>
+  <!-- Selection toolbar -->
+  <div id="sel-toolbar" style="display:none;padding:6px 10px;background:var(--blue-bg);border-radius:var(--radius-sm);margin-bottom:8px;align-items:center;gap:8px;font-size:12px;border:1px solid rgba(74,144,217,.2)">
+    <input type="checkbox" id="sel-all" onchange="toggleSelectAll(this.checked)" style="width:13px;height:13px">
+    <span id="sel-count" style="color:var(--blue);font-weight:600;flex:1">0 ausgewählt</span>
+    <button class="btn xs" onclick="markSelectedRead()">✓ Gelesen</button>
+    <button class="btn xs" onclick="starSelected()">★ Markieren</button>
+    <button class="btn xs da" onclick="deleteSelected()">🗑 Löschen</button>
+    <button class="btn xs" onclick="clearSelection()">✕</button>
+  </div>
+  <!-- Mail layout -->
+  <div class="inbox-layout">
+    <div style="display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden">
+      <div style="padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;justify-content:space-between;align-items:center">
+        <span id="inbox-count" style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px"></span>
+        <div style="display:flex;gap:4px">
+          <button class="btn xs" onclick="toggleSelectAll(true)" title="Alle auswählen">☐ Alle</button>
+        </div>
+      </div>
+      <div class="mlist" id="inbox-list" style="overflow-y:auto;flex:1"></div>
+    </div>
+    <div class="mdetail" id="mail-detail" style="display:flex;flex-direction:column;gap:0">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:60px 20px;text-align:center;color:var(--text3)">
+        <div style="font-size:36px;margin-bottom:12px">✉️</div>
+        <div style="font-size:13px;font-weight:500">Mail auswählen</div>
+        <div style="font-size:11px;margin-top:4px">Klicke auf eine Mail links</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SERIALS -->
+<div id="tab-serials" style="display:none">
+  <div class="fb">
+    <input id="ss" placeholder="Serial, Produkt, Tag..." oninput="debounceSearch()">
+    <button class="ff" id="fv" onclick="toggleFilter('valid')">Gültig</button>
+    <button class="ff" id="fr" onclick="toggleFilter('registered')">Registriert</button>
+    <button class="btn sm" onclick="loadSerials(1)">↻</button>
+    <a href="/api/export/csv" class="btn sm" download>↓ CSV</a>
+  </div>
+  <div class="tw">
+    <table><thead><tr>
+      <th style="width:130px">Serial</th><th style="width:80px">Status</th><th>Produkt</th>
+      <th style="width:90px">Wert</th><th style="width:90px">Garantie</th><th style="width:140px">Tags</th><th>Notiz</th><th style="width:32px"></th>
+    </tr></thead><tbody id="stb"></tbody></table>
+  </div>
+  <div id="pagination" style="display:flex;align-items:center;justify-content:space-between;padding:9px 4px;font-size:11px;color:var(--text2);flex-wrap:wrap;gap:6px">
+    <span id="pag-info" style="color:var(--text3)"></span>
+    <div class="gap" id="pag-btns"></div>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+<div id="tab-products" style="display:none"><div class="pgrid" id="pg"></div></div>
+
+<!-- STATS -->
+<div id="tab-stats" style="display:none">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+    <div class="card"><div class="ch">Funde pro Tag</div><div style="padding:14px;height:180px"><canvas id="cd"></canvas></div></div>
+    <div class="card"><div class="ch">Top Produkte</div><div style="padding:12px" id="tpl"></div></div>
+    <div class="card"><div class="ch">Werk-Codes</div><div style="padding:12px" id="wl"></div></div>
+    <div class="card"><div class="ch">Sachbearbeiter</div><div style="padding:12px" id="al"></div></div>
+    <div class="card"><div class="ch">Gesamtwert</div><div style="padding:20px;text-align:center" id="vt"></div></div>
+  </div>
+</div>
+
+<!-- RMA -->
+<div id="tab-rma" style="display:none">
+  <div class="fb">
+    <input id="rs" placeholder="Serial, Name, E-Mail..." oninput="renderRMA()">
+    <button class="ff" id="rfp" onclick="rmaFlt('positive')">Positiv</button>
+    <button class="ff" id="rfw" onclick="rmaFlt('waiting')">Wartend</button>
+    <button class="ff" id="rfo" onclick="rmaFlt('open')">Offen</button>
+    <button class="btn sm" onclick="loadRMA()">↻</button>
+    <button class="btn sm" onclick="reprocessRMA()" title="Mails neu analysieren">🔄 Neu analysieren</button>
+    <button class="btn sm" onclick="showDebugInfo()">🔍 Debug</button>
+  </div>
+  <div class="rc" id="rg"></div>
+</div>
+
+<!-- IDENTITIES -->
+<div id="tab-identities" style="display:none">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">
+    <div class="card"><div class="ch">Profile <button class="btn xs pr" onclick="showIdForm()">+ Neu</button></div><div style="padding:10px" id="idl"></div></div>
+    <div class="card"><div class="ch">Domains <button class="btn xs pr" onclick="addDom()">+</button></div><div style="padding:10px" id="doml"></div></div>
+    <div class="card"><div class="ch">Adress-Generator</div>
+      <div style="padding:13px">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:7px">Beliebige Stadt → echte Mehrfamilienhäuser</div>
+        <div class="ir" style="margin-bottom:8px">
+          <input id="ac" placeholder="z.B. Berlin, München..." list="cities">
+          <datalist id="cities"><option value="Berlin"><option value="Hamburg"><option value="München"><option value="Köln"><option value="Frankfurt"><option value="Stuttgart"><option value="Düsseldorf"><option value="Leipzig"><option value="Dresden"></datalist>
+          <button class="btn pr" onclick="genAddr()">Suchen</button>
+        </div>
+        <div id="ar-spin" style="display:none;font-size:11px;color:var(--text2)"><span class="spin"></span> Suche...</div>
+        <div id="ar-list"></div>
+      </div>
+    </div>
+    <div class="card"><div class="ch">Produkt-Werte</div>
+      <div style="padding:13px">
+        <div class="g2" style="margin-bottom:7px"><div><label class="fl">Teilenummer</label><input id="pvpn"></div><div><label class="fl">Name</label><input id="pvn"></div></div>
+        <div class="g2" style="margin-bottom:7px"><div><label class="fl">Min €</label><input id="pvmin" type="number"></div><div><label class="fl">Max €</label><input id="pvmax" type="number"></div></div>
+        <div style="margin-bottom:8px"><label class="fl">Kategorie</label><input id="pvcat"></div>
+        <button class="btn pr sm" onclick="savePV()">Speichern</button>
+        <div id="pvl" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="tab-settings" style="display:none">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">
+    <div class="card"><div class="ch">Sicherheit</div>
+      <div style="padding:13px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="font-size:12px;color:var(--text2)">Login-Passwort</div>
+        <button class="btn pr sm" onclick="changePassword()">🔒 Ändern</button>
+      </div>
+    </div>
+    <div class="card"><div class="ch">Mailgun (empfohlen)</div>
+      <div style="padding:14px;display:grid;gap:9px">
+        <div style="font-size:11px;color:var(--text2);padding:7px 9px;background:var(--blue-bg);border-radius:var(--radius-sm)">Mit Mailgun sendest du von jeder @domain Adresse — Logitech sieht die generierte Absenderadresse.</div>
+        <div><label class="fl">API-Key</label><input id="smgk" type="password" placeholder="key-..."></div>
+        <div><label class="fl">Domain</label><input id="smgd" placeholder="kafka-frame.com"></div>
+        <div class="gap">
+          <button class="btn pr sm" onclick="saveMailgun()">Speichern</button>
+          <button class="btn sm" onclick="testMailgun()">🔧 Testen</button>
+        </div>
+        <div id="mailgun-status" style="font-size:11px"></div>
+      </div>
+    </div>
+    <div class="card"><div class="ch">Mail-Zugangsdaten (IMAP/SMTP)</div>
+      <div style="padding:14px;display:grid;gap:9px">
+        <div><label class="fl">Benutzer</label><input id="smu"></div>
+        <div><label class="fl">Passwort</label><input id="smp" type="password"></div>
+        <div><label class="fl">Gemini API Key</label><input id="sgk"></div>
+        <div><label class="fl">Standard-Domain</label><input id="sdom"></div>
+        <button class="btn pr sm" onclick="saveSettings()">Speichern</button>
+      </div>
+    </div>
+    <div class="card"><div class="ch">Scanner</div>
+      <div style="padding:14px;display:grid;gap:9px">
+        <div class="g2"><div><label class="fl">Jahr von</label><input id="sys" type="number"></div><div><label class="fl">Jahr bis</label><input id="sye" type="number"></div></div>
+        <div><label class="fl">Pause (Sekunden)</label><input id="sdel" type="number" min="2" max="120"></div>
+        <button class="btn pr sm" onclick="saveScanner()">Speichern</button>
+      </div>
+    </div>
+    <div class="card"><div class="ch">Scan-Prioritäten</div>
+      <div style="padding:14px">
+        <div class="ir" style="margin-bottom:9px">
+          <input id="pn" placeholder="Name"><input id="pp" placeholder="Prefix" style="font-family:monospace">
+          <button class="btn pr sm" onclick="addPrio()">+</button>
+        </div>
+        <div id="prl"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Mail-Vorlagen</span>
+        <button class="btn xs pr" onclick="openTplModal()">+ Neue Vorlage</button>
+      </div>
+      <div style="padding:10px" id="tl2"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MONATSREPORT -->
+<div id="tab-monthly" style="display:none">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-bottom:14px" id="monthly-kpi"></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+    <div class="card"><div class="ch">Monatsverlauf</div><div style="padding:14px;height:200px"><canvas id="monthly-chart"></canvas></div></div>
+    <div class="card"><div class="ch">Details</div><div style="padding:0" id="monthly-table"></div></div>
+  </div>
+</div>
+
+<!-- COMPOSE -->
+<div id="tab-compose" style="display:none">
+  <div style="max-width:680px;margin:0 auto">
+    <div class="card" style="overflow:hidden">
+      <div class="ch">✉ Neue Mail verfassen</div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div class="g2">
+          <div>
+            <label class="fl">Von (Absender)</label>
+            <select id="cmp-from-sel" onchange="updateComposeFrom()" style="margin-bottom:5px">
+              <option value="">— Profil wählen —</option>
+            </select>
+            <input id="cmp-from" placeholder="absender@kafka-frame.com" style="font-family:monospace;font-size:12px">
+          </div>
+          <div>
+            <label class="fl">An (Empfänger)</label>
+            <input id="cmp-to" placeholder="support+id17061261@logitech.com" style="font-family:monospace;font-size:12px">
+          </div>
+        </div>
+        <div>
+          <label class="fl">Betreff</label>
+          <input id="cmp-subject" placeholder="Betreff...">
+        </div>
+        <div class="g2">
+          <div>
+            <label class="fl">🎫 Ticket-ID (optional)</label>
+            <input id="cmp-ticket" placeholder="z.B. 17061261" style="font-family:monospace">
+          </div>
+          <div>
+            <label class="fl">Land</label>
+            <select id="cmp-country">
+              <option value="de">🇩🇪 Deutschland</option>
+              <option value="us">🇺🇸 USA</option>
+              <option value="gb">🇬🇧 UK</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <select id="cmp-tpl" onchange="applyCmpTpl()" style="flex:1;min-width:150px;font-size:11px"><option value="">— Vorlage laden —</option></select>
+          <select id="cmp-lang" style="width:90px;font-size:11px"><option value="de">Deutsch</option><option value="en">Englisch</option></select>
+          <button class="btn sm" style="background:var(--blue-bg);color:var(--blue)" id="cmp-ki-btn" onclick="genKiCompose()">✦ KI generieren</button>
+          <span id="cmp-spin" style="display:none"><span class="spin"></span></span>
+        </div>
+        <div>
+          <label class="fl">Nachricht</label>
+          <textarea id="cmp-body" rows="10" placeholder="Mail-Text eingeben..." style="resize:vertical;font-size:13px;line-height:1.6"></textarea>
+        </div>
+        <div>
+          <label class="fl">Anhänge</label>
+          <input type="file" id="cmp-files" multiple style="padding:3px">
+          <div id="cmp-attach-preview" style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap"></div>
+        </div>
+        <div style="padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--text2)">
+          <strong>Tipp:</strong> Für Ticket-Antworten: Ticket-ID eintragen → Mail geht an <span class="mono">support+id{TICKET}@logitech.zendesk.com</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn pr" id="cmp-send-btn" onclick="sendCompose()">📤 Senden</button>
+          <button class="btn sm" onclick="saveCmpAsTpl()">💾 Als Vorlage</button>
+          <button class="btn sm" onclick="clearCompose()">✕ Leeren</button>
+          <div id="cmp-result" style="flex:1;font-size:11px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHECK -->
+<div id="tab-check" style="display:none">
+  <div class="card" style="max-width:420px;padding:15px">
+    <div class="sl2" style="margin-bottom:10px">Serial live prüfen</div>
+    <div class="ir" style="margin-bottom:7px">
+      <input id="qs" placeholder="Seriennummer..." style="font-family:monospace;text-transform:uppercase" onkeydown="if(event.key==='Enter')qCheck()">
+      <button class="btn pr" onclick="qCheck()">Prüfen</button>
+    </div>
+    <input id="qn" placeholder="Notiz..." style="margin-bottom:9px">
+    <div id="qr"></div>
+  </div>
+</div>
+
+<!-- INVOICE -->
+<div id="tab-invoice" style="display:none">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:1100px;margin:0 auto">
+
+    <!-- Left: Upload + field mapping -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card">
+        <div class="ch">📄 Rechnung hochladen</div>
+        <div style="padding:14px;display:grid;gap:9px">
+          <div style="padding:20px;border:2px dashed var(--border);border-radius:var(--radius-sm);text-align:center;cursor:pointer;transition:.15s" onclick="document.getElementById('inv-file-input').click()" id="inv-drop-zone">
+            <div style="font-size:28px;margin-bottom:6px">📄</div>
+            <div style="font-size:12px;font-weight:600">Word (.docx) oder PDF hochladen</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px">Word mit Markern → wird befüllt + als PDF gespeichert</div>
+          </div>
+          <input type="file" id="inv-file-input" accept=".docx,.pdf" style="display:none" onchange="loadInvoicePDF()">
+          <div style="display:flex;gap:6px;margin-top:6px;font-size:10px;color:var(--text3)">
+            <span style="padding:2px 8px;background:var(--blue-bg);color:var(--blue);border-radius:20px">📝 .docx empfohlen</span>
+            <span style="padding:2px 8px;background:var(--surface2);border-radius:20px">📄 .pdf auch möglich</span>
+          </div>
+          <div id="inv-pdf-info" style="font-size:11px;color:var(--text2)"></div>
+        </div>
+      </div>
+
+      <!-- Field values to fill in -->
+      <!-- Markers reference -->
+      <div class="card">
+        <div class="ch" style="cursor:pointer" onclick="toggleMarkersRef()">📋 Verfügbare Marker <span id="markers-arrow" style="font-size:10px;color:var(--text3)">▾</span></div>
+        <div id="markers-ref" style="padding:10px;display:none">
+          <div style="font-size:10px;color:var(--text2);margin-bottom:8px">Kopiere diese Marker in deine Word-Vorlage:</div>
+          <div id="markers-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px"></div>
+          <div style="margin-top:8px;font-size:10px;color:var(--text3)">Tipp: In Word/LibreOffice Marker eintippen → Speichern als PDF → hier hochladen</div>
+        </div>
+      </div>
+      <div class="card" id="inv-fields-card" style="display:none">
+        <div class="ch">✏️ Werte zum Einfügen</div>
+        <div style="padding:14px;display:grid;gap:8px">
+          <div>
+            <label class="fl">Profil (Name + Adresse)</label>
+            <select id="inv-profile" onchange="fillInvFromProfile()">
+              <option value="">— Profil wählen —</option>
+            </select>
+          </div>
+          <div class="g2">
+            <div><label class="fl">Vorname</label><input id="inv-fname"></div>
+            <div><label class="fl">Nachname</label><input id="inv-lname"></div>
+          </div>
+          <div><label class="fl">Straße + Nr.</label><input id="inv-street"></div>
+          <div class="g2">
+            <div><label class="fl">PLZ</label><input id="inv-zip"></div>
+            <div><label class="fl">Stadt</label><input id="inv-city"></div>
+          </div>
+          <div class="g2">
+            <div><label class="fl">Kaufdatum</label><input type="date" id="inv-date"></div>
+            <div><label class="fl">Preis (€)</label><input type="number" id="inv-price" step="0.01" placeholder="129.99"></div>
+          </div>
+          <div>
+            <label class="fl">Produktname</label>
+            <select id="inv-serial" onchange="fillInvFromSerial()">
+              <option value="">— aus Registrierung —</option>
+            </select>
+            <input id="inv-product" placeholder="oder manuell eingeben" style="margin-top:5px">
+          </div>
+          <div class="g2">
+            <div><label class="fl">Rechnungsnummer</label><input id="inv-number"></div>
+            <div><label class="fl">Bestellnummer <span style="color:var(--text3);font-size:9px">(optional)</span></label><input id="inv-order-number" placeholder="z.B. 123-456-789"></div>
+          </div>
+          <div><label class="fl">Versanddatum <span style="color:var(--text3);font-size:9px">(optional)</span></label><input type="date" id="inv-ship-date"></div>
+          <button class="btn pr" onclick="generateInvoice()" id="inv-gen-btn">🧾 Rechnung erstellen</button>
+          <div id="inv-result" style="font-size:11px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: PDF preview + text extraction -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card" style="flex:1">
+        <div class="ch">
+          <span>Vorschau & erkannte Felder</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn xs" id="inv-analyze-btn" style="display:none" onclick="analyzeInvoice()">🔍 Felder erkennen</button>
+          </div>
+        </div>
+        <div id="inv-preview-area" style="padding:14px;min-height:300px">
+          <div class="empty">Lade eine Rechnung hoch um die Vorschau zu sehen</div>
+        </div>
+      </div>
+
+      <!-- Saved templates -->
+      <div class="card">
+        <div class="ch">Gespeicherte Vorlagen</div>
+        <div style="padding:10px;max-height:200px;overflow-y:auto" id="inv-templates-list">
+          <div class="empty" style="padding:16px">Noch keine. Rechnung hochladen und speichern.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div><!-- content-area -->
+</div><!-- app-shell -->
+
+<!-- Overlay -->
+<div class="overlay" id="ov" style="display:none" onclick="mClose(event)">
+  <div class="panel"><div class="ph"><h2 id="pt"></h2><button class="btn xs" onclick="closeP()">✕</button></div><div id="pb"></div></div>
+</div>
+
+<!-- Login -->
+<div id="login-overlay" style="display:none">
+  <div class="card" style="width:100%;max-width:360px;padding:28px;margin:20px">
+    <div style="text-align:center;margin-bottom:24px">
+      <div class="logo" style="font-size:22px;margin-bottom:6px">Logi<span>Check</span></div>
+      <div style="font-size:12px;color:var(--text2)" id="login-subtitle">Bitte anmelden</div>
+    </div>
+    <div id="login-form">
+      <div style="margin-bottom:10px"><label class="fl">Benutzername</label><input id="l-user" value="admin" autocomplete="username"></div>
+      <div style="margin-bottom:14px"><label class="fl">Passwort</label><input id="l-pass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn pr" style="width:100%;justify-content:center" onclick="doLogin()">Anmelden</button>
+      <div id="login-err" style="color:var(--red);font-size:11px;margin-top:8px;text-align:center"></div>
+    </div>
+    <div id="first-login-form" style="display:none">
+      <div style="font-size:12px;color:var(--amber);margin-bottom:14px;padding:8px;background:var(--amber-bg);border-radius:var(--radius-sm)">Kein Passwort gesetzt. Bitte jetzt einrichten:</div>
+      <div style="margin-bottom:10px"><label class="fl">Benutzername</label><input id="fl-user" value="admin"></div>
+      <div style="margin-bottom:10px"><label class="fl">Passwort</label><input id="fl-pass" type="password"></div>
+      <div style="margin-bottom:14px"><label class="fl">Wiederholen</label><input id="fl-pass2" type="password"></div>
+      <button class="btn pr" style="width:100%;justify-content:center" onclick="setFirstPassword()">Passwort setzen</button>
+      <div id="fl-err" style="color:var(--red);font-size:11px;margin-top:8px;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="scripts/core.js"></script>
+<script src="scripts/auth.js"></script>
+<script src="scripts/nav.js"></script>
+<script src="scripts/bell.js"></script>
+<script src="scripts/inbox.js"></script>
+<script src="scripts/dashboard.js"></script>
+<script src="scripts/serials.js"></script>
+<script src="scripts/products.js"></script>
+<script src="scripts/rma.js"></script>
+<script src="scripts/identities.js"></script>
+<script src="scripts/settings.js"></script>
+<script src="scripts/stats.js"></script>
+<script src="scripts/monthly.js"></script>
+<script src="scripts/check.js"></script>
+<script src="scripts/compose.js"></script>
+<script src="scripts/invoice.js"></script>
+<script src="scripts/panel.js"></script>
+<script src="scripts/bootstrap.js"></script>
+
+</div><!-- app -->
+</body>
+</html>

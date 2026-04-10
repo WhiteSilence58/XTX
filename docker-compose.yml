@@ -1,0 +1,11 @@
+version: '3.9'
+
+services:
+  logicheck:
+    build: .
+    ports:
+      - "8053:8053"
+    volumes:
+      - ./data:/data
+      - ./frontend:/frontend
+    restart: unless-stopped

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Mail Render Debugger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+  .header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+  .header h1 { font-size: 15px; font-weight: 700; color: #fff; }
+  .header span { font-size: 11px; color: #64748b; }
+  .controls { padding: 14px 20px; background: #141620; border-bottom: 1px solid #2d3148; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+  .ctrl-group label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  input, select { background: #1e2130; border: 1px solid #2d3148; color: #e2e8f0; padding: 7px 10px; border-radius: 7px; font-size: 12px; font-family: monospace; }
+  input { width: 280px; }
+  button { padding: 8px 16px; border-radius: 7px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; }
+  .btn-primary { background: #3b82f6; color: #fff; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-danger { background: #ef4444; color: #fff; }
+  .layout { display: grid; grid-template-columns: 380px 1fr; height: calc(100vh - 130px); }
+  .panel { border-right: 1px solid #2d3148; overflow-y: auto; }
+  .panel-title { padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #64748b; border-bottom: 1px solid #2d3148; position: sticky; top: 0; background: #141620; z-index: 1; }
+  .info-row { display: flex; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid #1e2130; font-size: 12px; }
+  .info-row .key { color: #64748b; }
+  .info-row .val { color: #e2e8f0; font-family: monospace; text-align: right; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .val.ok { color: #22c55e; }
+  .val.warn { color: #f59e0b; }
+  .val.err { color: #ef4444; }
+  .preview-box { padding: 14px; }
+  .preview-label { font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+  pre.code { background: #0d0f18; border: 1px solid #2d3148; border-radius: 6px; padding: 10px; font-size: 11px; color: #94a3b8; overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 180px; overflow-y: auto; }
+  .render-panel { overflow-y: auto; background: #fff; }
+  .render-panel iframe { width: 100%; border: none; display: block; }
+  .tabs { display: flex; border-bottom: 1px solid #2d3148; background: #141620; }
+  .tab { padding: 8px 16px; font-size: 12px; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent; }
+  .tab.active { color: #3b82f6; border-color: #3b82f6; }
+  .loading { padding: 40px; text-align: center; color: #64748b; font-size: 13px; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .badge.green { background: #14532d; color: #22c55e; }
+  .badge.red { background: #450a0a; color: #ef4444; }
+  .badge.yellow { background: #422006; color: #f59e0b; }
+  #raw-tab { display: none; padding: 14px; background: #0d0f18; }
+  #raw-tab pre { font-size: 11px; color: #94a3b8; white-space: pre-wrap; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📧 Mail Render Debugger</h1>
+  <span>Teste wie Mails gerendert werden — direkte Verbindung zur API</span>
+</div>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <label>API Base URL</label>
+    <input id="baseUrl" value="" placeholder="https://deine-app.com">
+  </div>
+  <div class="ctrl-group">
+    <label>Mail ID</label>
+    <input id="mailId" type="number" value="130" style="width:100px">
+  </div>
+  <div class="ctrl-group">
+    <label>&nbsp;</label>
+    <button class="btn-primary" onclick="loadMail()">▶ Laden & Testen</button>
+  </div>
+  <div class="ctrl-group">
+    <label>Alle Mails</label>
+    <button class="btn-primary" onclick="loadMailList()" style="background:#6366f1">📋 Liste</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- Links: Info Panel -->
+  <div class="panel" id="info-panel">
+    <div class="panel-title">Diagnose</div>
+    <div id="info-content" class="loading">API URL eingeben und Mail laden...</div>
+  </div>
+
+  <!-- Rechts: Render -->
+  <div style="display:flex;flex-direction:column;overflow:hidden">
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('render')">🖼 Render</div>
+      <div class="tab" onclick="showTab('srcdoc')">📄 srcdoc</div>
+      <div class="tab" onclick="showTab('raw')">🗄 Raw HTML</div>
+    </div>
+    <div id="render-tab" style="flex:1;overflow-y:auto;background:#fff">
+      <div class="loading" style="background:#f8fafc;color:#64748b">Mail laden...</div>
+    </div>
+    <div id="srcdoc-tab" style="display:none;flex:1;overflow-y:auto;padding:14px;background:#0d0f18">
+      <pre id="srcdoc-content" style="font-size:11px;color:#94a3b8;white-space:pre-wrap;word-break:break-all">–</pre>
+    </div>
+    <div id="raw-tab">
+      <pre id="raw-content">–</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Inline copies of the actual functions from inbox.js ──────────────────────
+
+function isUpsMail(m){
+  const from = String((m && m.from_addr) || '').toLowerCase();
+  const subject = String((m && m.subject) || '').toLowerCase();
+  const htmlBody = String((m && m.html_body) || '').toLowerCase();
+  const body = String((m && m.body) || '').toLowerCase();
+  return (
+    from.includes('@ups.com') || from.includes('pkginfo') ||
+    subject.includes('ups versandbenachrichtigung') ||
+    subject.includes('kontrollnummer') ||
+    subject.includes('tracking number') ||
+    htmlBody.includes('www.ups.com') || htmlBody.includes('upsmychoice') ||
+    body.includes('www.ups.com') || body.includes('upsmychoice')
+  );
+}
+function looksLikeHtml(s){
+  const t = String(s||'').trim().toLowerCase();
+  return /<(html|body|table|tbody|tr|td|div|span|p|br|img|a|style|meta)\b/.test(t) || /&nbsp;/.test(t);
+}
+function decodeQP(s){
+  let o = String(s||'');
+  o = o.replace(/=\r?\n/g,'');
+  o = o.replace(/=3D/gi,'=').replace(/=20/gi,' ').replace(/=C2=A0/gi,' ');
+  return o;
+}
+function parseMailHtml(raw){
+  let html = decodeQP(raw||'');
+  html = html.replace(/##-.*?-##/gi,'');
+  html = html.replace(/<script[\s\S]*?<\/script>/gi,'');
+  html = html.replace(/<noscript[\s\S]*?<\/noscript>/gi,'');
+  html = html.replace(/<link[^>]*>/gi,'');
+  let headContent = '';
+  const hm = html.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+  if(hm) headContent = hm[1]||'';
+  let bodyContent = '';
+  const bm = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if(bm){ bodyContent = bm[1]||''; }
+  else {
+    bodyContent = html
+      .replace(/<!DOCTYPE[^>]*>/gi,'')
+      .replace(/<html[^>]*>/gi,'').replace(/<\/html>/gi,'')
+      .replace(/<head[\s\S]*?<\/head>/gi,'')
+      .replace(/<body[^>]*>/gi,'').replace(/<\/body>/gi,'').trim();
+  }
+  return { headContent, bodyContent };
+}
+function buildRawUpsSrcdoc(rawHtml){
+  let html = decodeQP(rawHtml||'');
+  html = html.replace(/<script[\s\S]*?<\/script>/gi,'');
+  const helperStyle = '<style>html,body{margin:0;padding:0;background:#fff}img{max-width:100%!important;height:auto!important}</style>';
+  if(/<html[\s\S]*>/i.test(html)){
+    if(/<\/head>/i.test(html)) return html.replace(/<\/head>/i, helperStyle+'</head>');
+    return helperStyle+html;
+  }
+  return '<!DOCTYPE html><html><head><meta charset="utf-8">'+helperStyle+'</head><body>'+html+'</body></html>';
+}
+function buildMailSrcdoc(rawHtml, m){
+  if(!rawHtml) return '';
+  if(isUpsMail(m)) return buildRawUpsSrcdoc(rawHtml);
+  const {headContent:hc, bodyContent:bc} = parseMailHtml(rawHtml);
+  const base = '<style>html,body{margin:0;padding:0;background:#fff}body{color:#111827;font-size:14px;line-height:1.68}img{max-width:100%!important;height:auto!important}a{color:#2563eb}</style>';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8">'+hc+base+'</head><body>'+bc+'</body></html>';
+}
+function getMailHtmlSource(m){
+  const h = String((m&&m.html_body)||'').trim();
+  const b = String((m&&m.body)||'').trim();
+  if(h && h.length>20) return h;
+  if(b && looksLikeHtml(b)) return b;
+  return '';
+}
+
+// ── UI ──────────────────────────────────────────────────────────────────────
+
+let currentMail = null;
+
+function showTab(tab){
+  ['render','srcdoc','raw'].forEach(t=>{
+    const el = document.getElementById(t+'-tab');
+    if(el) el.style.display = t===tab ? (t==='render'?'block':'block') : 'none';
+  });
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active', ['render','srcdoc','raw'][i]===tab);
+  });
+}
+
+async function loadMail(){
+  const base = document.getElementById('baseUrl').value.trim().replace(/\/$/,'');
+  const id = document.getElementById('mailId').value.trim();
+  if(!base){ alert('Bitte API URL eingeben'); return; }
+
+  document.getElementById('info-content').innerHTML = '<div class="loading">Lade Mail #'+id+'...</div>';
+  document.getElementById('render-tab').innerHTML = '<div class="loading" style="background:#f8fafc;color:#64748b">Rendere...</div>';
+
+  try{
+    const resp = await fetch(base+'/api/inbox?limit=300');
+    const mails = await resp.json();
+    const m = mails.find(x=>String(x.id)===String(id));
+    if(!m){ document.getElementById('info-content').innerHTML='<div class="loading" style="color:#ef4444">Mail #'+id+' nicht gefunden</div>'; return; }
+    currentMail = m;
+    renderDiagnosis(m, base);
+  }catch(e){
+    document.getElementById('info-content').innerHTML='<div class="loading" style="color:#ef4444">Fehler: '+e.message+'</div>';
+  }
+}
+
+function renderDiagnosis(m, base){
+  const rawHtml = getMailHtmlSource(m);
+  const isUps = isUpsMail(m);
+  const srcdoc = buildMailSrcdoc(rawHtml, m);
+  const {headContent, bodyContent} = rawHtml ? parseMailHtml(rawHtml) : {headContent:'',bodyContent:''};
+
+  const rows = [
+    ['ID', m.id, ''],
+    ['Von', m.from_addr, ''],
+    ['Betreff', (m.subject||'').substring(0,50), ''],
+    ['body Länge', (m.body||'').length+' chars', (m.body||'').length>0?'ok':'err'],
+    ['html_body Länge', (m.html_body||'').length+' chars', (m.html_body||'').length>0?'ok':'err'],
+    ['html_body truncated?', (m.html_body||'').length===8000?'JA – bei 8000 abgeschnitten!':'Nein', (m.html_body||'').length===8000?'warn':'ok'],
+    ['looksLikeHtml(body)', looksLikeHtml(m.body||'')+'', ''],
+    ['isUpsMail', isUps+'', isUps?'ok':''],
+    ['getMailHtmlSource', rawHtml.length+' chars', rawHtml.length>0?'ok':'err'],
+    ['headContent', headContent.length+' chars', headContent.length>50?'ok':'warn'],
+    ['bodyContent', bodyContent.length+' chars', bodyContent.length>50?'ok':'err'],
+    ['srcdoc Länge', srcdoc.length+' chars', srcdoc.length>100?'ok':'err'],
+    ['is_auto_reply', m.is_auto_reply+'', m.is_auto_reply?'err':'ok'],
+  ];
+
+  let html = '';
+  rows.forEach(([k,v,cls])=>{
+    html += `<div class="info-row"><span class="key">${k}</span><span class="val ${cls}">${v}</span></div>`;
+  });
+
+  // head preview
+  if(headContent){
+    html += '<div class="preview-box"><div class="preview-label">headContent (erste 300 Zeichen)</div><pre class="code">'+escH(headContent.substring(0,300))+'</pre></div>';
+  }
+  if(bodyContent){
+    html += '<div class="preview-box"><div class="preview-label">bodyContent (erste 300 Zeichen)</div><pre class="code">'+escH(bodyContent.substring(0,300))+'</pre></div>';
+  }
+
+  document.getElementById('info-content').innerHTML = html;
+  document.getElementById('srcdoc-content').textContent = srcdoc;
+  document.getElementById('raw-content').textContent = rawHtml;
+
+  // Render iframe
+  const renderDiv = document.getElementById('render-tab');
+  renderDiv.innerHTML = '';
+  if(!srcdoc){
+    renderDiv.innerHTML = '<div class="loading" style="background:#fef2f2;color:#ef4444">⚠ srcdoc ist leer — getMailHtmlSource gibt nichts zurück</div>';
+    return;
+  }
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:100%;height:600px;border:none;display:block';
+  iframe.setAttribute('sandbox','allow-same-origin allow-scripts');
+  iframe.srcdoc = srcdoc;
+  renderDiv.appendChild(iframe);
+
+  // Auto-resize
+  const msgId = 'dbg_'+Math.random().toString(36).slice(2);
+  const reporter = '<scr'+'ipt>window.addEventListener("load",function(){function r(){var h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight);window.parent.postMessage({id:"'+msgId+'",h:h},"*");}r();setTimeout(r,300);setTimeout(r,800);});<'+'/script>';
+  iframe.srcdoc = srcdoc.replace('</head>', reporter+'</head>');
+  window.addEventListener('message', function onH(e){
+    if(!e.data||e.data.id!==msgId) return;
+    iframe.style.height = Math.max(e.data.h, 400)+'px';
+  });
+}
+
+async function loadMailList(){
+  const base = document.getElementById('baseUrl').value.trim().replace(/\/$/,'');
+  if(!base){ alert('Bitte API URL eingeben'); return; }
+  const resp = await fetch(base+'/api/inbox?limit=300');
+  const mails = await resp.json();
+  let html = '<div style="padding:10px">';
+  mails.slice(0,30).forEach(m=>{
+    const hasHtml = (m.html_body||'').length > 20;
+    const truncated = (m.html_body||'').length === 8000;
+    html += `<div style="padding:8px 10px;border-bottom:1px solid #2d3148;cursor:pointer;font-size:12px" onclick="document.getElementById('mailId').value=${m.id};loadMail()">
+      <div style="font-weight:600;color:#e2e8f0">#${m.id} ${escH((m.subject||'').substring(0,50))}</div>
+      <div style="color:#64748b;font-size:11px">${escH(m.from_addr||'')} &nbsp;
+        <span style="color:${hasHtml?'#22c55e':'#ef4444'}">${hasHtml?'✓ html_body':'✗ kein html'}</span>
+        ${truncated?'<span style="color:#f59e0b"> ⚠ truncated</span>':''}
+        ${m.is_auto_reply?'<span style="color:#ef4444"> 🚫 auto_reply</span>':''}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('info-content').innerHTML = html;
+}
+
+function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+fastapi==0.111.0
+uvicorn==0.30.0
+requests==2.31.0
+python-multipart==0.0.9
+google-generativeai==0.5.4
+reportlab
+pdfplumber
+pypdf
+python-docx
+lxml
